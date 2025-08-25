@@ -26,7 +26,7 @@ if [ ! -d "assets" ]; then
 fi
 
 if [ ! -f ".env" ]; then
-    echo "BOT_TOKEN=8217931968:AAEO7YsKB975bwCtsfnE4c0OtXz9VjkAO0Q" > .env
+    echo "BOT_TOKEN=TELEGRAM_BOT_TOKEN" > .env
     echo ".env created. Please edit it with your real bot token."
     exit 1
 fi
