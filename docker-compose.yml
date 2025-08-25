@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  slapfight-bot:
+    build: .
+    container_name: slapfight_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./assets:/app/assets
+      - ./slap_game.db:/app/slap_game.db
