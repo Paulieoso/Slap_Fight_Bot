@@ -18,7 +18,7 @@ A fun Telegram game bot where players battle by slapping each other!
 
 ### Local Setup
 ```bash
-git clone https://github.com/yourusername/slap_fight_bot.git
+git clone https://github.com/Paulieoso/slap_fight_bot.git
 cd slap_fight_bot
 python3 -m venv venv
 source venv/bin/activate   # On Windows: venv\\Scripts\\activate
