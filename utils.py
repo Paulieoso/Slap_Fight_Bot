@@ -1,3 +1,4 @@
+# utils.py
 import logging
 import asyncio
 from typing import Optional, Dict, Any
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 async def safe_send_message(chat_id: int, context, text: str, 
                            reply_markup: Optional[InlineKeyboardMarkup] = None, 
                            parse_mode: Optional[str] = None) -> bool:
+    """Safely send a message with error handling"""
     try:
         await context.bot.send_message(
             chat_id=chat_id,
@@ -29,6 +31,7 @@ async def safe_send_message(chat_id: int, context, text: str,
 async def safe_edit_message(update: Update, text: str, 
                            reply_markup: Optional[InlineKeyboardMarkup] = None, 
                            parse_mode: Optional[str] = None) -> bool:
+    """Safely edit a message with error handling"""
     try:
         await update.callback_query.edit_message_text(
             text=text,
@@ -43,6 +46,7 @@ async def safe_edit_message(update: Update, text: str,
 async def safe_send_photo(chat_id: int, context, photo: io.BytesIO, 
                          caption: Optional[str] = None,
                          reply_markup: Optional[InlineKeyboardMarkup] = None) -> bool:
+    """Safely send a photo with error handling"""
     try:
         await context.bot.send_photo(
             chat_id=chat_id,
@@ -56,15 +60,17 @@ async def safe_send_photo(chat_id: int, context, photo: io.BytesIO,
         return False
 
 def create_main_menu_keyboard() -> InlineKeyboardMarkup:
+    """Create the main menu keyboard"""
     keyboard = [
-        [InlineKeyboardButton("🥊 Find Fight", callback_data='fight')],
-        [InlineKeyboardButton("🧍 Create Character", callback_data='create_character')],
-        [InlineKeyboardButton("🏆 Rankings", callback_data='rankings')],
-        [InlineKeyboardButton("📊 My Stats", callback_data='stats')]
+        [InlineKeyboardButton("Fight", callback_data='fight')],
+        [InlineKeyboardButton("Create Character", callback_data='create_character')],
+        [InlineKeyboardButton("Rankings", callback_data='rankings')],
+        [InlineKeyboardButton("My Stats", callback_data='stats')]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def create_character_gender_keyboard() -> InlineKeyboardMarkup:
+    """Create gender selection keyboard"""
     keyboard = [
         [InlineKeyboardButton("Male", callback_data='gender_male')],
         [InlineKeyboardButton("Female", callback_data='gender_female')],
@@ -73,6 +79,7 @@ def create_character_gender_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 def create_skin_tone_keyboard() -> InlineKeyboardMarkup:
+    """Create skin tone selection keyboard"""
     keyboard = [
         [InlineKeyboardButton("Light", callback_data='skin_light')],
         [InlineKeyboardButton("Medium", callback_data='skin_medium')],
@@ -82,6 +89,7 @@ def create_skin_tone_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 def create_body_style_keyboard() -> InlineKeyboardMarkup:
+    """Create body style selection keyboard"""
     keyboard = [
         [InlineKeyboardButton("Lightweight", callback_data='body_lightweight')],
         [InlineKeyboardButton("Middleweight", callback_data='body_middleweight')],
@@ -91,6 +99,7 @@ def create_body_style_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 def create_game_keyboard(game: Game, player_id: int) -> Optional[InlineKeyboardMarkup]:
+    """Create appropriate keyboard for the current game state"""
     if game.state == GameState.GAME_END or game.state == GameState.TIMED_OUT:
         return None
     
@@ -98,43 +107,52 @@ def create_game_keyboard(game: Game, player_id: int) -> Optional[InlineKeyboardM
     
     if game.current_turn == player_id:
         if game.state in [GameState.PLAYER1_CHOOSE_SLAP, GameState.PLAYER2_CHOOSE_SLAP]:
+            # Slap options
             keyboard.append([
                 InlineKeyboardButton("Slap on 1", callback_data=f'slap_1_{game.game_id}'),
                 InlineKeyboardButton("Slap on 2", callback_data=f'slap_2_{game.game_id}'),
                 InlineKeyboardButton("Slap on 3", callback_data=f'slap_3_{game.game_id}')
             ])
             
+            # Club option if available
             clubs_used = game.player1_clubs if player_id == game.player1_id else game.player2_clubs
             if clubs_used < 2:
-                keyboard.append([InlineKeyboardButton("Use Club 🏒", callback_data=f'club_{game.game_id}')])
+                keyboard.append([InlineKeyboardButton("Use Club", callback_data=f'club_{game.game_id}')])
         
         elif game.state in [GameState.PLAYER1_GUESS, GameState.PLAYER2_GUESS]:
+            # Guess options
             keyboard.append([
                 InlineKeyboardButton("Guess 1", callback_data=f'guess_1_{game.game_id}'),
                 InlineKeyboardButton("Guess 2", callback_data=f'guess_2_{game.game_id}'),
                 InlineKeyboardButton("Guess 3", callback_data=f'guess_3_{game.game_id}')
             ])
             
+            # Flinch option if available
             flinches_used = game.player1_flinches if player_id == game.player1_id else game.player2_flinches
             if flinches_used < 2:
-                keyboard.append([InlineKeyboardButton("Use Flinch 😬", callback_data=f'flinch_{game.game_id}')])
+                keyboard.append([InlineKeyboardButton("Use Flinch", callback_data=f'flinch_{game.game_id}')])
     
+    # Always include main menu option
     keyboard.append([InlineKeyboardButton("Main Menu", callback_data='main_menu')])
     
     return InlineKeyboardMarkup(keyboard)
 
 async def cleanup_timed_out_games(context):
+    """Clean up games that have timed out due to inactivity"""
     try:
+        # Get all active games
         all_games = []
-        for user_id in []:
+        for user_id in []:  # This would need to be implemented to get all users with active games
             user_games = db.get_player_games(user_id, active_only=True)
             all_games.extend(user_games)
         
+        # Check each game for timeout
         for game in all_games:
             if GameLogic.check_game_timeout(game):
                 game.state = GameState.TIMED_OUT
                 db.update_game(game)
                 
+                # Notify players
                 player1 = db.get_player(game.player1_id)
                 if player1:
                     await safe_send_message(
@@ -154,15 +172,18 @@ async def cleanup_timed_out_games(context):
         logger.error(f"Error in cleanup_timed_out_games: {e}")
 
 async def notify_opponent(game: Game, context, message: str):
-    if not game.player2_id:
+    """Notify the opponent about game state changes"""
+    if not game.player2_id:  # AI game
         return
     
     opponent_id = game.player2_id if context.user_data['user_id'] == game.player1_id else game.player1_id
     opponent = db.get_player(opponent_id)
     
     if opponent:
+        # Send notification to opponent
         await safe_send_message(opponent_id, context, message)
         
+        # If it's now opponent's turn, send them the game interface
         if game.current_turn == opponent_id:
             player = db.get_player(opponent_id)
             game_image = ImageGenerator.generate_game_image(game, 
