@@ -1,3 +1,4 @@
+# database.py
 import sqlite3
 import logging
 from typing import Optional, List, Dict, Any
@@ -18,6 +19,7 @@ class Database:
     
     @contextmanager
     def get_connection(self):
+        """Context manager for database connections with error handling"""
         conn = None
         try:
             conn = sqlite3.connect(self.db_url)
@@ -31,10 +33,12 @@ class Database:
                 conn.close()
     
     def init_db(self):
+        """Initialize database tables"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
                 
+                # Players table
                 c.execute('''CREATE TABLE IF NOT EXISTS players
                             (user_id INTEGER PRIMARY KEY, 
                              username TEXT NOT NULL,
@@ -46,6 +50,7 @@ class Database:
                              losses INTEGER DEFAULT 0,
                              created_at REAL NOT NULL)''')
                 
+                # Games table
                 c.execute('''CREATE TABLE IF NOT EXISTS games
                             (game_id INTEGER PRIMARY KEY AUTOINCREMENT,
                              player1_id INTEGER NOT NULL,
@@ -62,8 +67,11 @@ class Database:
                              player1_slap INTEGER,
                              player2_slap INTEGER,
                              created_at REAL NOT NULL,
-                             updated_at REAL NOT NULL)''')
+                             updated_at REAL NOT NULL,
+                             FOREIGN KEY (player1_id) REFERENCES players (user_id),
+                             FOREIGN KEY (player2_id) REFERENCES players (user_id))''')
                 
+                # Game actions table
                 c.execute('''CREATE TABLE IF NOT EXISTS game_actions
                             (action_id INTEGER PRIMARY KEY AUTOINCREMENT,
                              game_id INTEGER NOT NULL,
@@ -73,7 +81,9 @@ class Database:
                              slap_count INTEGER,
                              guess_count INTEGER,
                              damage INTEGER,
-                             timestamp REAL NOT NULL)''')
+                             timestamp REAL NOT NULL,
+                             FOREIGN KEY (game_id) REFERENCES games (game_id),
+                             FOREIGN KEY (player_id) REFERENCES players (user_id))''')
                 
                 conn.commit()
         except sqlite3.Error as e:
@@ -81,6 +91,7 @@ class Database:
             raise DatabaseError(f"Database initialization failed: {e}")
     
     def get_player(self, user_id: int) -> Optional[Player]:
+        """Get player by user ID"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -92,6 +103,7 @@ class Database:
             return None
     
     def create_player(self, player: Player) -> bool:
+        """Create a new player"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -109,6 +121,7 @@ class Database:
             return False
     
     def update_player(self, player: Player) -> bool:
+        """Update player data"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -126,6 +139,7 @@ class Database:
             return False
     
     def create_game(self, player1_id: int, player2_id: Optional[int] = None) -> Optional[int]:
+        """Create a new game and return game ID"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -144,6 +158,7 @@ class Database:
             return None
     
     def get_game(self, game_id: int) -> Optional[Game]:
+        """Get game by ID"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -155,6 +170,7 @@ class Database:
             return None
     
     def update_game(self, game: Game) -> bool:
+        """Update game data"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -175,6 +191,7 @@ class Database:
             return False
     
     def get_player_games(self, user_id: int, active_only: bool = True) -> List[Game]:
+        """Get all games for a player"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -197,6 +214,7 @@ class Database:
             return []
     
     def get_global_rankings(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get global rankings by wins"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -214,6 +232,7 @@ class Database:
     def add_game_action(self, game_id: int, round_number: int, player_id: int, 
                        action_type: str, slap_count: Optional[int] = None, 
                        guess_count: Optional[int] = None, damage: Optional[int] = None) -> bool:
+        """Record a game action for analytics"""
         try:
             with self.get_connection() as conn:
                 c = conn.cursor()
@@ -227,4 +246,5 @@ class Database:
             logger.error(f"Error adding game action: {e}")
             return False
 
+# Global database instance
 db = Database()
