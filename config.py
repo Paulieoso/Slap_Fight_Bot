@@ -1,3 +1,4 @@
+# config.py
 import os
 import logging
 from dataclasses import dataclass
@@ -14,13 +15,14 @@ class Config:
     CLUB_DAMAGE: int = 4
     FLINCH_DAMAGE: int = 1
     TOTAL_ROUNDS: int = 5
-    AI_WAIT_TIME: int = 2
-    GAME_TIMEOUT: int = 300
+    AI_WAIT_TIME: int = 2  # seconds to wait for AI moves
+    GAME_TIMEOUT: int = 300  # seconds before game times out
     
     def validate(self):
         if not self.BOT_TOKEN:
             raise ValueError("BOT_TOKEN environment variable is required")
             
+        # Set up logging
         logging.basicConfig(
             level=getattr(logging, self.LOG_LEVEL),
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
